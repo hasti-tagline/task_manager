@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='api_key',
-            field=models.CharField(default=accounts.models.generate_api_key, max_length=100),
+            field=models.CharField(default=accounts.models.generate_api_key),
         ),
     ]
