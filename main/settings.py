@@ -1,6 +1,10 @@
 from pathlib import Path
 from datetime import timedelta
 from celery.schedules import crontab
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -15,8 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@a3esl@kf4kh$ex11xnx0-0xh6d3a_t2!xkuqjp-vf6z3vyv(p'
-API_KEY_SECRET = b'Je8-k936sCgOv5myhIDMU88XKwVsnwImU8uj006wNvE='
+SECRET_KEY = os.getenv("SECRET_KEY")
+API_KEY_SECRET = os.getenv("API_KEY_SECRET")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -178,8 +182,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "hastins.tagline@gmail.com"
-EMAIL_HOST_PASSWORD = "onfoquxheyfogmyv"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "hastins.tagline@gmail.com"
 
 
