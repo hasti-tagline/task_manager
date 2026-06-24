@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Edit Task</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+  <div class="card p-4 shadow">
+
+            <h3 class="mb-3">Edit Task</h3>
+
+            <!-- TITLE -->
+            <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input id="title" class="form-control">
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea id="description" class="form-control"></textarea>
+            </div>
+
+            <!-- DUE DATE -->
+            <div class="mb-3">
+            <label class="form-label">Due Date</label>
+            <input id="due_date" type="date" class="form-control">
+            </div>
+
+            <!-- STATUS -->
+            <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select id="status" class="form-select"></select>
+            </div>
+
+            <!-- PRIORITY -->
+            <div class="mb-3">
+            <label class="form-label">Priority</label>
+            <select id="priority" class="form-select">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+            </div>
+
+            <!-- ASSIGNED USERS -->
+            <div class="mb-3">
+            <label class="form-label">Assign To (Multiple Users)</label>
+            <select id="assigned_to" class="form-select" multiple></select>
+            </div>
+
+            <!-- FILE -->
+            <!-- ADMIN / MANAGER ATTACHMENT -->
+            <div class="mb-3" id="attachmentBox">
+                <label class="form-label">Attachment (Task File)</label>
+                <input id="attachment" type="file" class="form-control">
+            </div>
+
+            <!-- EMPLOYEE SUBMISSION -->
+            <div class="mb-3" id="submissionBox">
+                <label class="form-label">Submission File</label>
+                <input id="submission" type="file" class="form-control">
+            </div>
+            
+
+            <!-- BUTTONS -->
+            <button class="btn btn-success w-100" onclick="updateTask()">Update Task</button>
+            <a href="/dashboard/" class="btn btn-secondary w-100 mt-2">Back</a>
+
+        </div>
+</div>
+
+
+
+<script src="{% static 'js/auth.js' %}"></script>
+
+
+<script>
+
+
+const role = localStorage.getItem("role")
+const currentUserId = parseInt(localStorage.getItem("user_id"))
+const taskId = new URLSearchParams(window.location.search).get("id")
+
+let assignedUsersFromAPI = []
+let isManagerOnAdminTask = false   // GLOBAL FLAG (IMPORTANT)
+
+// STATUS OPTIONS
+function setStatusOptions(options) {
+    const status = document.getElementById("status")
+    status.innerHTML = ""
+
+    options.forEach(opt => {
+        status.innerHTML += `
+            <option value="${opt}">
+                ${opt.charAt(0).toUpperCase() + opt.slice(1)}
+            </option>
+        `
+    })
+}
+
+// ASSIGNED USERS SELECT
+function setAssignedUsers() {
+    const select = document.getElementById("assigned_to")
+
+    Array.from(select.options).forEach(option => {
+        option.selected = assignedUsersFromAPI.includes(parseInt(option.value))
+    })
+}
+
+
+// LOAD DATA
+Promise.all([
+    authFetch(`/api/tasks/${taskId}/`).then(res => res.json()),
+    authFetch(`/api/users/`).then(res => res.json())
+])
+.then(([task, users]) => {
+
+    // USERS
+    const select = document.getElementById("assigned_to")
+    const userList = users.data.results || users.data
+
+    userList.forEach(user => {
+        select.innerHTML += `
+            <option value="${user.id}">
+                ${user.username}
+            </option>
+        `
+    })
+
+    // TASK DATA
+    document.getElementById("title").value = task.data.title || ""
+    document.getElementById("description").value = task.data.description || ""
+    document.getElementById("due_date").value = task.data.due_date ? task.data.due_date.split("T")[0] : ""
+    document.getElementById("priority").value = task.data.priority || "medium"
+
+    assignedUsersFromAPI = task.data.assigned_to || []
+
+    //correct manager check
+    isManagerOnAdminTask =
+        role === "manager" &&
+        task.data.created_by_id !== currentUserId  // task came from admin
+
+
+    if (role === "employee") {
+        // employee cannot edit anything
+        document.getElementById("title").disabled = true
+        document.getElementById("description").disabled = true
+        document.getElementById("due_date").disabled = true
+        document.getElementById("priority").disabled = true
+        document.getElementById("assigned_to").disabled = true
+    }
+
+    if (isManagerOnAdminTask) {
+        // manager  can not edit admin task
+        document.getElementById("title").disabled = true
+        document.getElementById("description").disabled = true
+        document.getElementById("due_date").disabled = true
+        document.getElementById("priority").disabled = true
+        document.getElementById("assigned_to").disabled = true
+    }
+
+    // STATUS OPTIONS
+    if (role === "admin") {
+        setStatusOptions(["pending","in_progress","review","rejected","completed","cancelled","overdue"])
+    }
+    else if (role === "manager") {
+        setStatusOptions(["pending","in_progress","review","rejected","completed","overdue"])
+    }
+    else {
+        setStatusOptions(["pending","in_progress","review"])
+    }
+
+    document.getElementById("status").value = task.data.status
+
+    // FILE UI RULES
+    document.getElementById("attachmentBox").style.display = "none"
+    document.getElementById("submissionBox").style.display = "none"
+
+    if (role === "admin") {
+        document.getElementById("attachmentBox").style.display = "block"
+    }
+
+    if (role === "manager") {
+        document.getElementById("attachmentBox").style.display = "block"
+        
+        if(role=="manager" && isManagerOnAdminTask)
+        // manager NEVER gets submission upload
+        document.getElementById("attachmentBox").style.display = "none"
+        document.getElementById("submissionBox").style.display = "block"
+    }
+
+    if (role === "employee") {
+        document.getElementById("submissionBox").style.display = "block"
+    }
+
+    setAssignedUsers()
+})
+
+
+// UPDATE TASK
+function updateTask() {
+
+    let formData = new FormData()
+
+    // admin + manager editing full task
+    if (role === "admin" ||(role === "manager" && !isManagerOnAdminTask)){
+
+        formData.append("title", document.getElementById("title").value)
+        formData.append("description", document.getElementById("description").value)
+        formData.append("due_date", document.getElementById("due_date").value)
+
+        let selectedUsers = Array.from(
+            document.getElementById("assigned_to").selectedOptions
+        ).map(opt => opt.value)
+
+        selectedUsers.forEach(id => {
+            formData.append("assigned_to", id)
+        })
+    }
+
+    formData.append("status", document.getElementById("status").value)
+    formData.append("priority", document.getElementById("priority").value)
+
+    // attachment (admin/manager)
+    let attachment = document.getElementById("attachment")?.files[0]
+    if (attachment) {
+        formData.append("attachment", attachment)
+    }
+
+    // submission ONLY for employee and manager
+    let submission = document.getElementById("submission")?.files[0]
+    if (submission &&  (role === "employee" || role === "manager")) {
+        formData.append("submission", submission)
+    }
+
+    authFetch(`/api/tasks/${taskId}/`, {
+        method: "PATCH",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert("Task Updated Successfully")
+        window.location.href = "/dashboard/"
+    })
+    .catch(err => {
+        console.log(err)
+        alert("Update failed")
+    })
+}
+
+</script>
+</body>
+</html>

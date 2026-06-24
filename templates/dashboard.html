@@ -1,0 +1,305 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+
+
+<body>
+
+<div class="container mt-5">
+
+  <div class="top-bar d-flex justify-content-between align-items-center mb-4">
+
+      <span class="fw-bold "><h2> 
+        Task Manager</h2></span>
+        </span>
+
+        <span class="badge bg-primary p-3 fs-6">
+        Logged in as: <span id="loggedRole"></span>
+        </span>
+
+        <div class="dropdown">
+          <button class="btn btn-light position-relative" onclick="openNotifications()">
+              🔔
+              <span id="notifCount"
+                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  0
+              </span>
+          </button>
+      </div>
+
+        <div id="notificationPanel" style="display:none; border:1px solid #ccc; padding:8px;">
+            <h5>Notifications</h5>
+            <ul id="notificationList"></ul>
+        </div>
+            <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+      </div>
+
+
+  <!-- USER TABLE -->
+  <div class="card dashboard-card">
+    <div class="card-body">
+
+      <!-- SEARCH + FILTER -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h4 class="fw-bold">User Table</h4>
+
+        <div class="d-flex gap-2">
+
+          <input type="text" id="searchUser" class="form-control search-box"
+            placeholder="Search user..." onkeyup="loadUsers()">
+
+          <select id="filterRole" class="form-select filter-select" onchange="loadUsers()">
+            <option value="">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="employee">Employee</option>
+          </select>
+
+        </div>
+
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+
+          <thead>
+            <tr id="userTableHead"></tr>
+          </thead>
+
+          <tbody id="userTableBody"></tbody>
+        </table>
+
+            <div
+                id="userPagination"
+                class="mt-3">
+            </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
+
+<br>
+<!-- CREATE TASK BUTTON -->
+<div id="createTaskBtn" class="d-flex justify-content-between align-items-center mb-3 px-4">
+  <a href="/tasks/create/" class="btn btn-primary">+ Create Task</a>
+</div>
+
+
+
+<!-- TASK TABLE -->
+<div class="card dashboard-card mt-5">
+  <div class="card-body">
+
+    <!-- TOP BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+      <h4 class="fw-bold">Task Table</h4>
+
+    <!-- SEARCH + FILTER -->
+      <div class="d-flex gap-2">
+
+        <input type="text" id="searchTask" class="form-control search-box"
+          placeholder="Search task..." onkeyup="loadTasks()">
+
+        <select id="filterTaskStatus" class="form-select filter-select" onchange="loadTasks()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="completed">Completed</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="overdue">Overdue</option>
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+
+        <thead class="table-dark">
+          <tr id="taskTableHead"></tr>
+        </thead>
+
+        <tbody id="taskTableBody"></tbody>
+      </table>
+
+
+        <div
+            id="taskPagination"
+            class="mt-3">
+        </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
+<!-- JS -->
+<script src="{% static 'js/auth.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+
+
+// web socket 
+const userId = localStorage.getItem("user_id")
+const socket = new WebSocket(`ws://localhost:8000/ws/tasks/${userId}/`)
+
+socket.onopen = function () {
+  console.log("WebSocket Connected")
+}
+
+socket.onmessage = function(event) {
+    console.log("Raw Event:", event.data);
+    const data = JSON.parse(event.data)
+    console.log("Parsed Data:", data);
+
+    // New Task Notification
+    if (data.message === "New Task Assigned") {
+
+        alert("New Task: " + data.title)
+
+        let count = parseInt(document.getElementById("notifCount").innerText)
+        document.getElementById("notifCount").innerText = count + 1
+
+        loadNotifications()
+        loadTasks(currentTaskPage)
+    }
+
+    // Task Status Updated
+    if (data.event === "task_updated") {
+
+        const statusElement = document.getElementById(
+            `task-status-${data.task_id}`
+        )
+
+        if (statusElement) {
+            statusElement.innerText = data.status
+        }
+    }
+    if(data.event === "submission_uploaded"){
+        console.log("Submission event received");
+        loadTaskDetails();
+
+    } 
+    
+    if(data.event === "new_chat_notification"){
+
+        alert("You have a new message");
+        loadNotifications();
+        loadNotificationCount();
+
+}
+}
+
+socket.onclose = function () {
+    console.log("WebSocket Closed")
+}
+
+
+
+
+
+// load notification
+function loadNotifications() {
+    authFetch("/notifications/")
+        .then(res => res.json())
+        .then(data => {
+
+            console.log("Notifications:", data.data)
+
+            let unreadCount = 0
+            let html = ""
+
+            data.data.forEach(n => {
+
+                if (!n.is_read) unreadCount++
+
+                    html += `
+                        <li onclick="openNotification(
+                            ${n.id},
+                            ${n.task},
+                            '${n.title}'
+                        )">
+                            ${n.title} - ${n.message}
+                        </li>
+                    `
+            })
+
+            document.getElementById("notificationList").innerHTML = html
+            document.getElementById("notifCount").innerText = unreadCount
+        })
+}
+
+
+// load notification count
+function loadNotificationCount() {
+
+    authFetch("/notifications/count/")
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("notifCount").innerText = data.count
+    })
+}
+
+
+// open notification panel
+function openNotifications() {
+    let panel = document.getElementById("notificationPanel")
+
+    panel.style.display =
+        panel.style.display === "none" ? "block" : "none"
+}
+
+
+
+// notification mark as read
+function markAsRead(id) {
+
+    authFetch(`/notifications/${id}/read/`, {
+        method: "PATCH"
+    }).then(() => {
+        loadNotifications()
+    })
+}
+
+
+function openNotification(notificationId, taskId, title){
+
+    markAsRead(notificationId);
+
+    if(title === "New Chat Message"){
+        window.location.href = `/chat/?task=${taskId}`;
+    }
+    
+}
+
+
+
+loadNotifications()
+loadTasks()
+</script>
+
+</body>
+</html>

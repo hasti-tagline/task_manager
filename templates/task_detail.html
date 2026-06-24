@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Task Detail</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <div class="card p-4 shadow">
+
+        <h3>Task Details</h3>
+
+        <div id="taskInfo"></div>
+
+        <h7><strong>Assigned To:</strong></h7>
+
+        <div id="assignedTo"></div>
+
+        <hr>
+
+        <a href="/dashboard/" class="btn btn-secondary mt-3">Back</a>
+
+    </div>
+
+</div>
+<script src="{% static 'js/auth.js' %}"></script>
+
+<script>
+const userId = localStorage.getItem("user_id");
+const taskId = new URLSearchParams(window.location.search).get("id")
+const socket = new WebSocket(
+    `ws://localhost:8000/ws/tasks/${userId}/`
+);
+
+socket.onmessage = function(event){
+
+    const data = JSON.parse(event.data);
+
+    console.log("Task Detail WS:", data);
+
+    if(data.event === "submission_uploaded"){
+
+        if(data.task_id == taskId){
+
+            loadTaskDetails();
+
+        }
+    }
+};
+
+
+function loadTaskDetails(){
+
+    authFetch(`/api/tasks/${taskId}/`)
+    .then(res => res.json())
+    .then(task => {
+
+        document.getElementById("taskInfo").innerHTML = `
+            <p><b>Title:</b> ${task.data.title}</p>
+            <p><b>Description:</b> ${task.data.description}</p>
+            <p><b>Due Date:</b> ${task.data.due_date}</p>
+            <p><b>Status:</b> ${task.data.status}</p>
+            <p><b>Priority:</b> ${task.data.priority}</p>
+            <p><b>Created By:</b> ${task.data.created_by_name}</p>
+        `;
+
+        document.getElementById("assignedTo").innerHTML =
+            task.data.assigned_to_names.map(name =>
+                `<span class="badge bg-primary me-1">${name}</span>`
+            ).join("");
+
+        if(task.data.attachment){
+            document.getElementById("taskInfo").innerHTML += `
+                <p>
+                    <b>Attachment File:</b>
+                    <a href="${task.data.attachment}" target="_blank">
+                        Download attachment
+                    </a>
+                </p>
+            `;
+        }
+
+        if(task.data.submission){
+            document.getElementById("taskInfo").innerHTML += `
+                <p>
+                    <b>Submission File:</b>
+                    <a href="${task.data.submission}" target="_blank">
+                        Download submission
+                    </a>
+                </p>
+            `;
+        }
+    });
+}
+
+loadTaskDetails();
+
+</script>
+
+</body>
+
+</html>

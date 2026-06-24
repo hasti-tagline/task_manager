@@ -1,0 +1,119 @@
+body{
+
+    background-color: #f4f6f9;
+
+    font-family: Arial, sans-serif;
+}
+
+
+.dashboard-card{
+
+    border-radius: 20px;
+
+    border: none;
+
+    box-shadow: 0px 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.table thead{
+
+    background: #212529;
+
+    color: white;
+}
+
+
+.table tbody tr:hover{
+
+    background-color: #f8f9fa;
+
+    transition: 0.2s;
+}
+
+
+.role-badge{
+
+    padding: 6px 12px;
+
+    border-radius: 20px;
+
+    color: white;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+.admin-badge{
+
+    background: #dc3545;
+}
+
+
+.manager-badge{
+
+    background: #0d6efd;
+}
+
+
+.employee-badge{
+
+    background: #198754;
+}
+
+
+.top-bar{
+
+    background: white;
+
+    padding: 20px;
+
+    border-radius: 20px;
+
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.05);
+}
+
+
+.search-box{
+
+    border-radius: 10px;
+}
+
+
+.filter-select{
+
+    border-radius: 10px;
+}
+
+
+.table td{
+
+    vertical-align: middle;
+}
+
+
+
+.status-pending{
+
+    background: #ffc107;
+}
+
+
+.status-progress{
+
+    background: #0d6efd;
+}
+
+
+.status-review{
+
+    background: #6f42c1;
+}
+
+
+.status-completed{
+
+    background: #198754;
+}
