@@ -14,7 +14,7 @@ A Task Management System built with Django, Django REST Framework, Channels, Cel
 * Celery background tasks
 * RESTful APIs with Django REST Framework
 * Pagination, filtering, and search
-* Audit logs and activity tracking
+
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ A Task Management System built with Django, Django REST Framework, Channels, Cel
 * Django Channels
 * Redis
 * Celery
-* SQLite/PostgreSQL
+* PostgreSQL
 * JavaScript
 * HTML/CSS
 
@@ -119,9 +119,6 @@ python manage.py test
 * Docker support
 * GitHub Actions CI/CD
 * PostgreSQL deployment
-* Email notifications
 * Analytics and reports
 
-## Author
 
-Hasti Panseriya
