@@ -14,11 +14,11 @@ jobs:
     env:
       API_KEY_SECRET: ${{ secrets.API_KEY_SECRET }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DB_NAME: taskmanager
-      DB_USER: taskuser
-      DB_PASSWORD: tagmanager123
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
+      DB_NAME: ${{ secrets.DB_NAME}}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
 
       EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
       EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
