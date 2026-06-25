@@ -19,7 +19,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
-API_KEY_SECRET = os.getenv("API_KEY_SECRET").encode()
+api_key = os.getenv("API_KEY_SECRET")
+
+if not api_key:
+    raise ValueError("API_KEY_SECRET environment variable is missing")
+
+API_KEY_SECRET = api_key.encode()
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
